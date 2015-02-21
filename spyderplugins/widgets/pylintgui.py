@@ -24,7 +24,7 @@ import os
 import os.path as osp
 import time
 import re
-import subprocess
+from subprocess import PIPE
 
 # Local imports
 from spyderlib import dependencies
@@ -52,10 +52,14 @@ def get_pylint_version():
     global PYLINT_PATH
     if PYLINT_PATH is None:
         return
-    process = subprocess.Popen([PYLINT, '--version'],
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                               cwd=osp.dirname(PYLINT_PATH),
-                               shell=True if os.name == 'nt' else False)
+    kwargs=dict(stdout=PIPE, stderr=PIPE, cwd=osp.dirname(PYLINT_PATH))
+    cmd = PYLINT
+    args = ['--version']
+    if os.name == 'nt':
+        cmd = PYLINT + ' '.join(args)
+        process = programs.run_shell_command(cmd, **kwargs)
+    else:
+        process = programs.run_program(cmd, args, **kwargs)
     lines = to_unicode_from_fs(process.stdout.read()).splitlines()
     if lines:
         match = re.match('(pylint3?|pylint-script.py) ([0-9\.]*)', lines[0])

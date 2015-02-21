@@ -98,10 +98,10 @@ def get_hg_revision(repopath):
            ('eba7273c69df+', '2015+', 'default')
     """
     try:
-        hg = programs.find_program('hg')
-        assert hg is not None and osp.isdir(osp.join(repopath, '.hg'))
-        output, _err = subprocess.Popen([hg, 'id', '-nib', repopath],
-                                        stdout=subprocess.PIPE).communicate()
+        assert osp.isdir(osp.join(repopath, '.hg'))
+        proc = programs.run_program('hg', ['id', '-nib', repopath],
+                stdout=subprocess.PIPE)
+        output, _err = proc.communicate()
         # output is now: ('eba7273c69df+ 2015+ default\n', None)
         # Split 2 times max to allow spaces in branch names.
         return tuple(output.decode().strip().split(None, 2))

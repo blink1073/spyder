@@ -32,6 +32,7 @@ from spyderlib.utils.qthelpers import create_action, get_std_icon
 from spyderlib.interpreter import Interpreter
 from spyderlib.utils.dochelpers import getargtxt, getsource, getdoc, getobjdir
 from spyderlib.utils.misc import get_error_match
+from spyderlib.utils import programs
 #TODO: remove the CONF object and make it work anyway
 # In fact, this 'CONF' object has nothing to do in package spyderlib.widgets
 # which should not contain anything directly related to Spyder's main app
@@ -297,11 +298,11 @@ class InternalShell(PythonShellWidget):
         editor_path = CONF.get('internal_console', 'external_editor/path')
         goto_option = CONF.get('internal_console', 'external_editor/gotoline')
         try:
+            cmd = editor_path
+            args = [filename]
             if goto > 0 and goto_option:
-                Popen(r'%s "%s" %s%d' % (editor_path, filename,
-                                         goto_option, goto))
-            else:
-                Popen(r'%s "%s"' % (editor_path, filename))
+                args.append('%s%d'.format(goto_option, goto))
+            programs.run_program(cmd, args)
         except OSError:
             self.write_error("External editor was not found:"
                              " %s\n" % editor_path)

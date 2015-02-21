@@ -24,10 +24,11 @@ import os
 import re
 import fnmatch
 import os.path as osp
-from subprocess import Popen, PIPE
+from subprocess import PIPE
 import traceback
 
 # Local imports
+from spyderlib.utils import programs
 from spyderlib.utils.vcs import is_hg_installed, get_vcs_root
 from spyderlib.utils.misc import abspardir, get_common_path
 from spyderlib.utils.qthelpers import (get_icon, get_std_icon,
@@ -189,8 +190,8 @@ class SearchThread(QThread):
         return ok
 
     def find_files_in_hg_manifest(self):
-        p = Popen(['hg', 'manifest'], stdout=PIPE,
-                  cwd=self.rootpath, shell=True)
+        p = programs.run_shell_command('hg manifest',
+                stdout=PIPE, cwd=self.root)
         hgroot = get_vcs_root(self.rootpath)
         self.pathlist = [hgroot]
         for path in p.stdout.read().decode().splitlines():

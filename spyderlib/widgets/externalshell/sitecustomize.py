@@ -804,8 +804,9 @@ def evalsc(command):
         if command.startswith('cd '):
             evalsc('%'+command)
         else:
-            from subprocess import Popen, PIPE
-            Popen(command, shell=True, stdin=PIPE)
+            from subprocess import PIPE
+            from spyderlib.utils import programs
+            programs.run_shell_command(command, stdin=PIPE)
             _print('\n')
     else:
         # General command

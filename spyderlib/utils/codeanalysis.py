@@ -11,7 +11,7 @@ Source code analysis utilities
 import sys
 import re
 import os
-from subprocess import Popen, PIPE
+from subprocess import PIPE
 import tempfile
 import traceback
 
@@ -144,8 +144,10 @@ def check(args, source_code, filename=None, options=None):
         args.append(tempfd.name)
     else:
         args.append(filename)
-    output = Popen(args, stdout=PIPE, stderr=PIPE
-                   ).communicate()[0].strip().decode().splitlines()
+    cmd = args[0]
+    cmdargs = [] if len(args) < 2 else args[1:]
+    proc = programs.run_program(cmd, cmdargs, stdout=PIPE, stderr=PIPE)
+    output = proc.communicate()[0].strip().decode().splitlines()
     if filename is None:
         os.unlink(tempfd.name)
     results = []

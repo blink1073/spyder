@@ -55,13 +55,79 @@ def find_program(basename):
             return path
 
 
-def run_program(name, args=[], cwd=None):
-    """Run program in a separate process"""
-    assert isinstance(args, (tuple, list))
-    path = find_program(name)
-    if not path:
-        raise RuntimeError("Program %s was not found" % name)
-    subprocess.Popen([path]+args, cwd=cwd)
+def alter_subprocess_kwargs_by_platform(**kwargs):
+    """Given a dict, populate kwargs to create a generally
+    useful default setup for running subprocess processes
+    on different platforms. For example, `close_fds` is
+    set on posix and creation of a new console window is
+    disabled on Windows.
+
+    This function will alter the given kwargs and return
+    the modified dict."""
+    kwargs.setdefault('close_fds', os.name == 'posix')
+    if os.name == 'nt':
+        CONSOLE_CREATION_FLAGS = 0  # Default value
+        # Add more here..
+        CREATE_NO_WINDOW = 0x08000000
+        # We "or" them together
+        CONSOLE_CREATION_FLAGS |= CREATE_NO_WINDOW
+        kwargs.setdefault('creationflags', CONSOLE_CREATION_FLAGS)
+    return kwargs
+
+
+def run_shell_command(cmdstr, **subprocess_kwargs):
+    """ Execute the given shell command. Note that *args and
+    **kwargs will be passed to the subprocess call. 
+    
+    If 'shell' is given in subprocess_kwargs it must be True.
+    If 'executable' is not given in subprocess_kwargs, it will
+    be set to the value of the SHELL environment variable.
+    
+    :str cmdstr: The string run as a shell command.
+    :subprocess_kwargs: These will be passed to subprocess.Popen."""
+    kwargs = subprocess_kwargs
+    if 'shell' in kwargs:
+        assert kwargs['shell']==True, (
+                'The "shell" kwarg may be omitted, but if '
+                'provided it must be True.')
+    else:
+        kwargs['shell'] = True
+
+    if 'executable' not in kwargs:
+        kwargs['executable'] = os.getenv('SHELL')
+
+    kwargs = alter_subprocess_kwargs_by_platform(**kwargs)
+    return subprocess.Popen(cmdstr, **kwargs)
+
+
+def run_program(program, args=[], **subprocess_kwargs):
+    """Run program in a separate process.
+
+    NOTE: returns the process object created by
+    `subprocess.Popen()`. This can be used with
+    `proc.communicate()` for example.
+    
+    If 'shell' appears in the kwargs, it must be False.
+
+    If only the program name is given and not the full path,
+    a lookup will be performed to find the program. If the
+    lookup fails, RuntimeError will be raised.
+    
+    :str program: The name of the program to run.
+    :list args: The program arguments.
+    :subprocess_kwargs: These will be passed to subprocess.Popen."""
+    kwargs = subprocess_kwargs
+    if 'shell' in kwargs:
+        assert kwargs['shell']==False, (
+                "This function is only for non-shell programs, "
+                "use run_shell_command() instead.")
+    fullcmd = find_program(program)
+    if not fullcmd:
+        raise RuntimeError("Program %s was not found" % program)
+    # As per subprocess, we make a complete list of prog+args
+    fullcmd = [fullcmd] + args
+    kwargs = alter_subprocess_kwargs_by_platform(**kwargs)
+    return subprocess.Popen(fullcmd, **kwargs)
 
 
 def start_file(filename):
@@ -103,7 +169,7 @@ def run_python_script(package=None, module=None, args=[], p_args=[]):
     assert module is not None
     assert isinstance(args, (tuple, list)) and isinstance(p_args, (tuple, list))
     path = python_script_exists(package, module)
-    subprocess.Popen([sys.executable]+p_args+[path]+args)
+    run_program(sys.executable, p_args + [path] + args)
 
 
 def shell_split(text):
@@ -162,8 +228,7 @@ def run_python_script_in_terminal(fname, wdir, args, interact,
         # See http://bugs.python.org/issue1759845#msg74142
         cmd = encoding.to_fs_from_unicode(
                 'start cmd.exe /c "cd %s && ' % wdir + ' '.join(p_args) + '"')
-        subprocess.Popen(cmd, shell=True,
-                         cwd=encoding.to_fs_from_unicode(wdir))
+        run_shell_command(cmd, cwd=encoding.to_fs_from_unicode(wdir))
     elif os.name == 'posix':
         cmd = 'gnome-terminal'
         if is_program_installed(cmd):
@@ -253,8 +318,9 @@ def is_module_installed(module_name, version=None, installed_version=None,
                 else:
                     f.write("print(is_module_installed('%s'))" % module_name)
             try:
-                output, _err = subprocess.Popen([interpreter, script],
-                                        stdout=subprocess.PIPE).communicate()
+                proc = run_program(interpreter, [script], 
+                        stdout=subprocess.PIPE)
+                output, _err = proc.communicate()
             except subprocess.CalledProcessError:
                 return True
             if output:  # TODO: Check why output could be empty!
