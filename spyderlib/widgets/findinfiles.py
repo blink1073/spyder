@@ -191,7 +191,7 @@ class SearchThread(QThread):
 
     def find_files_in_hg_manifest(self):
         p = programs.run_shell_command('hg manifest',
-                stdout=PIPE, cwd=self.root)
+                stdout=PIPE, cwd=self.rootpath)
         hgroot = get_vcs_root(self.rootpath)
         self.pathlist = [hgroot]
         for path in p.stdout.read().decode().splitlines():
