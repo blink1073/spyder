@@ -228,22 +228,22 @@ def run_python_script_in_terminal(fname, wdir, args, interact,
         # Command line and cwd have to be converted to the filesystem
         # encoding before passing them to subprocess
         # See http://bugs.python.org/issue1759845#msg74142
-        cmd = 'start cmd.exe /c "cd %s && ' % wdir + ' '.join(p_args) + '"'
-        # Command line and cwd have to be converted to the filesystem
-        # encoding before passing them to subprocess, but only for
-        # Python 2.
-        # See http://bugs.python.org/issue1759845#msg74142 and Issue 1856
-        if PY2:
-            cmd = encoding.to_fs_from_unicode(cmd)
-            wdir = encoding.to_fs_from_unicode(wdir)
-        try:
+        cmd = 'start cmd.exe /c "cd %s && ' % wdir + ' '.join(p_args) + '"'
+        # Command line and cwd have to be converted to the filesystem
+        # encoding before passing them to subprocess, but only for
+        # Python 2.
+        # See http://bugs.python.org/issue1759845#msg74142 and Issue 1856
+        if PY2:
+            cmd = encoding.to_fs_from_unicode(cmd)
+            wdir = encoding.to_fs_from_unicode(wdir)
+        try:
             run_shell_command(cmd, cwd=wdir)
-        except WindowsError:
-            from spyderlib.qt.QtGui import QMessageBox
-            from spyderlib.baseconfig import _
-            QMessageBox.critical(None, _('Run'),
-                                 _("It was not possible to run this file in "
-                                   "an external terminal"),
+        except WindowsError:
+            from spyderlib.qt.QtGui import QMessageBox
+            from spyderlib.baseconfig import _
+            QMessageBox.critical(None, _('Run'),
+                                 _("It was not possible to run this file in "
+                                   "an external terminal"),
                                  QMessageBox.Ok)
     elif os.name == 'posix':
         cmd = 'gnome-terminal'
